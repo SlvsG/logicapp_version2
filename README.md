@@ -1,0 +1,14 @@
+![Image Alt](https://github.com/SlvsG/logicapp/blob/898b49eb19362f6583cd3e4ac93c62a8862ab97a/IMG_3828.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3829.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3830.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3831.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3832.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3833.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3834.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3835.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3836.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3837.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3838.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3839.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3840.PNG).
+![Image Alt](https://github.com/SlvsG/logicapp/blob/3bbe203aed454252835087f2fca236b27a1835f2/IMG_3841.PNG).
