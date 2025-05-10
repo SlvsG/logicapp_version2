@@ -1,18 +1,23 @@
 import SwiftUI
 
+// MARK: - Main View
 struct LogicaConjuntosView: View {
-    @State private var conjuntos: [String] = ["1, 2, 3", "2, 3, 4", "3, 4, 5"]
+    // Estados para conjuntos
+    @State private var conjuntosNumericos: [String] = ["1, 2, 3", "2, 3, 4", "3, 4, 5"]
+    @State private var universoNumerico: String = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10"
+    @State private var conjuntosAlfabeticos: [String] = ["a, b, c", "b, c, d", "c, d, e"]
+    @State private var universoAlfabetico: String = "a, b, c, d, e, f, g, h"
     @State private var operacion: String = "Unión"
-    @State private var resultado: Set<String> = []
-    @State private var mostrarVisualizaciones: Bool = true
-    @State private var mostrarHistorial: Bool = false
+    @State private var resultadoNumerico: Set<String> = []
+    @State private var resultadoAlfabetico: Set<String> = []
+    @State private var mostrarVisualizaciones = true
+    @State private var mostrarHistorial = false
     @State private var historial: [String] = []
-    @State private var seleccionHistorial: Set<String> = []
-    @State private var tamanoUniverso: String = "10"
-    @State private var mostrarConfigUniverso: Bool = false
-    @State private var interseccionesPares: [String] = []
+    @State private var mostrarConfigUniverso = false
+    @State private var tipoEntrada = "Numérico"
     
-    let operaciones = [
+    // Operaciones disponibles
+    private let operaciones = [
         "Unión", "Intersección", "Diferencia", "Complemento",
         "Ley de Morgan 1", "Ley de Morgan 2", "Doble Negación",
         "Conmutativa Unión", "Conmutativa Intersección",
@@ -21,362 +26,480 @@ struct LogicaConjuntosView: View {
         "Contradicción", "Distributiva Unión", "Distributiva Intersección"
     ]
     
+    private let tiposEntrada = ["Numérico", "Alfabético"]
+    
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Header con botones
-                HStack {
-                    Button(action: {
-                        mostrarHistorial.toggle()
-                    }) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.title2)
-                            .padding(8)
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    headerView()
+                    
+                    if mostrarConfigUniverso {
+                        configuracionUniversoView()
                     }
                     
-                    Spacer()
+                    tipoEntradaPickerView()
+                    conjuntosInputView()
+                    operacionPickerView()
+                    actionButtonsView()
+                    resultadosView()
                     
-                    Text("Lógica y Conjuntos")
-                        .font(.title2)
-                        .bold()
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        mostrarConfigUniverso.toggle()
-                    }) {
-                        Image(systemName: "globe")
-                            .font(.title2)
-                            .padding(8)
+                    if mostrarVisualizaciones {
+                        visualizacionesView()
                     }
                 }
-                .padding(.horizontal)
-                
-                // Configuración del universo
-                if mostrarConfigUniverso {
-                    VStack {
-                        HStack {
-                            Text("Tamaño del Universo:")
-                            TextField("Número", text: $tamanoUniverso)
-                                .keyboardType(.numberPad)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 60)
-                            
-                            Button("Aplicar") {
-                                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                .padding(.vertical)
+            }
+            .navigationTitle("Lógica de Conjuntos")
+            .sheet(isPresented: $mostrarHistorial) {
+                historialView()
+            }
+        }
+    }
+    
+    // MARK: - Subviews
+    
+    private func headerView() -> some View {
+        HStack {
+            Button(action: { mostrarHistorial.toggle() }) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.title2)
+                    .padding(8)
+            }
+            
+            Spacer()
+            
+            Button(action: { mostrarConfigUniverso.toggle() }) {
+                Image(systemName: "globe")
+                    .font(.title2)
+                    .padding(8)
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+    private func configuracionUniversoView() -> some View {
+        VStack {
+            if tipoEntrada == "Numérico" {
+                HStack {
+                    Text("Universo Numérico:")
+                    TextField("Ej. 1, 2, 3", text: $universoNumerico)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+            } else {
+                HStack {
+                    Text("Universo Alfabético:")
+                    TextField("Ej. a, b, c", text: $universoAlfabetico)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+            }
+            
+            Button("Aplicar") {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                calcularOperacion()
+            }
+            .padding(.top, 5)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
+        .padding(.horizontal)
+    }
+    
+    private func tipoEntradaPickerView() -> some View {
+        Picker("Tipo de Conjunto", selection: $tipoEntrada) {
+            ForEach(tiposEntrada, id: \.self) { tipo in
+                Text(tipo).tag(tipo)
+            }
+        }
+        .pickerStyle(SegmentedPickerStyle())
+        .padding(.horizontal)
+        .onChange(of: tipoEntrada) { _ in calcularOperacion() }
+    }
+    
+    private func conjuntosInputView() -> some View {
+        Group {
+            if tipoEntrada == "Numérico" {
+                ForEach(0..<conjuntosNumericos.count, id: \.self) { index in
+                    HStack {
+                        TextField("Conjunto \(index+1)", text: $conjuntosNumericos[index])
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onChange(of: conjuntosNumericos[index]) { _ in
                                 calcularOperacion()
                             }
-                            .padding(.horizontal)
-                        }
                         
-                        Text("Universo: \(universo().sorted().map { $0 }.joined(separator: ", "))")
-                            .font(.caption)
-                            .padding(.top, 5)
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
-                }
-                
-                // Sección de Conjuntos
-                Group {
-                    ForEach(0..<conjuntos.count, id: \.self) { index in
-                        HStack {
-                            TextField("Conjunto \(index+1) (ej. 1, 2, 3)", text: $conjuntos[index])
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .onChange(of: conjuntos[index]) { _ in
-                                    calcularOperacion()
-                                }
-                            
-                            if conjuntos.count > 1 {
-                                Button(action: {
-                                    conjuntos.remove(at: index)
-                                    calcularOperacion()
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
+                        if conjuntosNumericos.count > 1 {
+                            Button(action: {
+                                conjuntosNumericos.remove(at: index)
+                                calcularOperacion()
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
                             }
                         }
                     }
                     .padding(.horizontal)
-                    
-                    Button(action: {
-                        conjuntos.append("")
-                    }) {
-                        HStack {
-                            Image(systemName: "plus")
-                            Text("Agregar Conjunto")
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(10)
-                    }
-                    .padding(.horizontal)
                 }
-                
-                // Selector de Operación
-                Menu {
-                    ScrollView {
-                        VStack(spacing: 10) {
-                            ForEach(operaciones, id: \.self) { op in
-                                Button(action: {
-                                    operacion = op
-                                    calcularOperacion()
-                                }) {
-                                    Text(op)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(8)
-                                        .background(operacion == op ? Color.blue.opacity(0.2) : Color.clear)
-                                        .cornerRadius(4)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 5)
-                    }
-                    .frame(height: min(CGFloat(operaciones.count) * 44, 300))
-                } label: {
+            } else {
+                ForEach(0..<conjuntosAlfabeticos.count, id: \.self) { index in
                     HStack {
-                        Text(operacion)
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-                }
-                .padding(.horizontal)
-                
-                // Botones de Acción
-                HStack(spacing: 15) {
-                    Button(action: calcularOperacion) {
-                        Text("Calcular")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
-                    
-                    Button(action: borrarCampos) {
-                        Text("Borrar")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
-                }
-                .padding(.horizontal)
-                
-                // Resultado
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Resultado:")
-                        .font(.headline)
-                    
-                    if operacion == "Intersección" && conjuntos.count > 2 {
-                        ForEach(interseccionesPares, id: \.self) { texto in
-                            Text(texto)
+                        TextField("Conjunto \(index+1)", text: $conjuntosAlfabeticos[index])
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onChange(of: conjuntosAlfabeticos[index]) { _ in
+                                calcularOperacion()
+                            }
+                        
+                        if conjuntosAlfabeticos.count > 1 {
+                            Button(action: {
+                                conjuntosAlfabeticos.remove(at: index)
+                                calcularOperacion()
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
                         }
-                    } else {
-                        Text(formatearResultado(resultado))
                     }
+                    .padding(.horizontal)
+                }
+            }
+            
+            Button(action: {
+                if tipoEntrada == "Numérico" {
+                    conjuntosNumericos.append("")
+                } else {
+                    conjuntosAlfabeticos.append("")
+                }
+            }) {
+                HStack {
+                    Image(systemName: "plus")
+                    Text("Agregar Conjunto")
                 }
                 .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.2))
+                .frame(maxWidth: .infinity)
+                .background(Color.gray.opacity(0.1))
                 .cornerRadius(10)
-                .padding(.horizontal)
-                
-                // Botón para invertir conjuntos
-                if conjuntos.count >= 2 {
-                    Button(action: invertirConjuntos) {
-                        HStack {
-                            Image(systemName: "arrow.left.arrow.right")
-                            Text("Invertir Conjuntos")
-                        }
-                        .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(10)
-                    }
-                    .padding(.horizontal)
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    private func operacionPickerView() -> some View {
+        Menu {
+            ForEach(operaciones, id: \.self) { op in
+                Button(action: {
+                    operacion = op
+                    calcularOperacion()
+                }) {
+                    Text(op)
                 }
-                
-                // Visualizaciones
-                if mostrarVisualizaciones {
-                    VStack(spacing: 30) {
-                        TablaPertenenciaConjuntosView(
-                            conjuntos: conjuntos.map { limpiarConjunto($0) },
-                            resultado: resultado,
-                            operacion: operacion,
-                            universo: universo()
-                        )
-                        .frame(height: 200)
-                        
-                        if conjuntos.count <= 3 {
-                            DiagramaVennConjuntosView(
-                                conjuntos: conjuntos.map { limpiarConjunto($0) },
-                                resultado: resultado,
-                                operacion: operacion
-                            )
-                            .frame(height: 250)
-                        }
-                        
-                        CircuitoLogicoConjuntosView(operacion: operacion)
-                            .frame(height: 200)
-                        
-                        EcuacionConjuntosView(operacion: operacion)
-                            .frame(height: 80)
-                    }
+            }
+        } label: {
+            HStack {
+                Text(operacion)
+                    .foregroundColor(.primary)
+                Spacer()
+                Image(systemName: "chevron.down")
+            }
+            .padding()
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(8)
+        }
+        .padding(.horizontal)
+    }
+    
+    private func actionButtonsView() -> some View {
+        HStack(spacing: 15) {
+            Button(action: calcularOperacion) {
+                Text("Calcular")
+                    .frame(maxWidth: .infinity)
                     .padding()
-                    .transition(.slide)
-                }
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
             }
-            .padding(.vertical)
-        }
-        .sheet(isPresented: $mostrarHistorial) {
-            NavigationView {
-                List(selection: $seleccionHistorial) {
-                    ForEach(historial.reversed(), id: \.self) { item in
-                        Text(item)
-                    }
-                    .onDelete { indices in
-                        let reversedIndices = indices.map { historial.count - 1 - $0 }
-                        historial.remove(atOffsets: IndexSet(reversedIndices))
-                    }
-                }
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Borrar") {
-                            historial.removeAll()
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Cerrar") {
-                            mostrarHistorial = false
-                        }
-                    }
-                }
-                .navigationTitle("Historial (\(historial.count))")
-                .environment(\.editMode, .constant(seleccionHistorial.isEmpty ? .inactive : .active))
+            
+            Button(action: borrarCampos) {
+                Text("Borrar")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
             }
         }
-        .animation(.easeInOut, value: mostrarVisualizaciones)
-        .animation(.easeInOut, value: mostrarConfigUniverso)
-        .onAppear { calcularOperacion() }
+        .padding(.horizontal)
     }
     
-    // Funciones auxiliares
-    func universo() -> Set<String> {
-        guard let n = Int(tamanoUniverso), n > 0 else { return Set() }
-        return Set((1...n).map { String($0) })
+    private func resultadosView() -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Resultados")
+                .font(.headline)
+            
+            if tipoEntrada == "Numérico" {
+                Text("Numérico: \(formatearResultado(resultadoNumerico))")
+                
+                if operacion == "Intersección" && conjuntosNumericos.count >= 2 {
+                    mostrarIntersecciones(conjuntos: conjuntosNumericos, resultado: resultadoNumerico)
+                }
+            } else {
+                Text("Alfabético: \(formatearResultado(resultadoAlfabetico))")
+                
+                if operacion == "Intersección" && conjuntosAlfabeticos.count >= 2 {
+                    mostrarIntersecciones(conjuntos: conjuntosAlfabeticos, resultado: resultadoAlfabetico)
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.gray.opacity(0.2))
+        .cornerRadius(10)
+        .padding(.horizontal)
     }
     
-    func invertirConjuntos() {
-        guard conjuntos.count >= 2 else { return }
-        conjuntos.swapAt(0, 1)
-        calcularOperacion()
+    @ViewBuilder
+    private func mostrarIntersecciones(conjuntos: [String], resultado: Set<String>) -> some View {
+        let sets = conjuntos.map { limpiarConjunto($0) }
+        
+        ForEach(0..<sets.count, id: \.self) { i in
+            ForEach(i+1..<sets.count, id: \.self) { j in
+                let interseccion = sets[i].intersection(sets[j])
+                if !interseccion.isEmpty {
+                    Text("C\(i+1) ∩ C\(j+1) = \(formatearResultado(interseccion))")
+                }
+            }
+        }
+        
+        if conjuntos.count > 2 {
+            let interseccionTotal = sets.reduce(sets[0]) { $0.intersection($1) }
+            if !interseccionTotal.isEmpty {
+                Text("Intersección total = \(formatearResultado(interseccionTotal))")
+                    .bold()
+            }
+        }
     }
     
-    func borrarCampos() {
-        conjuntos = ["", ""]
-        resultado = []
-        interseccionesPares = []
-        operacion = "Unión"
+    private func visualizacionesView() -> some View {
+        VStack(spacing: 30) {
+            if tipoEntrada == "Numérico" {
+                TablaPertenenciaView(
+                    conjuntos: conjuntosNumericos.map { limpiarConjunto($0) },
+                    resultado: resultadoNumerico,
+                    operacion: operacion,
+                    universo: limpiarConjunto(universoNumerico)
+                )
+                .frame(height: 200)
+                
+                if conjuntosNumericos.count <= 3 {
+                    DiagramaVennView(
+                        conjuntos: conjuntosNumericos.map { limpiarConjunto($0) },
+                        resultado: resultadoNumerico,
+                        operacion: operacion
+                    )
+                    .frame(height: 250)
+                }
+            } else {
+                TablaPertenenciaView(
+                    conjuntos: conjuntosAlfabeticos.map { limpiarConjunto($0) },
+                    resultado: resultadoAlfabetico,
+                    operacion: operacion,
+                    universo: limpiarConjunto(universoAlfabetico)
+                )
+                .frame(height: 200)
+                
+                if conjuntosAlfabeticos.count <= 3 {
+                    DiagramaVennView(
+                        conjuntos: conjuntosAlfabeticos.map { limpiarConjunto($0) },
+                        resultado: resultadoAlfabetico,
+                        operacion: operacion
+                    )
+                    .frame(height: 250)
+                }
+            }
+            
+            CircuitoLogicoView(operacion: operacion)
+                .frame(height: 200)
+            
+            EcuacionFormalView(operacion: operacion)
+                .frame(height: 80)
+        }
+        .padding()
     }
     
-    func calcularOperacion() {
-        guard !conjuntos.isEmpty else {
-            resultado = []
-            interseccionesPares = []
+    private func historialView() -> some View {
+        NavigationView {
+            List {
+                ForEach(historial.reversed(), id: \.self) { item in
+                    Text(item)
+                }
+                .onDelete { indices in
+                    let reversedIndices = indices.map { historial.count - 1 - $0 }
+                    historial.remove(atOffsets: IndexSet(reversedIndices))
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EditButton()
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Borrar") {
+                        historial.removeAll()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cerrar") {
+                        mostrarHistorial = false
+                    }
+                }
+            }
+            .navigationTitle("Historial (\(historial.count))")
+        }
+    }
+    
+    // MARK: - Logic Functions
+    
+    private func calcularOperacion() {
+        if tipoEntrada == "Numérico" {
+            calcularOperacionNumerica()
+        } else {
+            calcularOperacionAlfabetica()
+        }
+    }
+    
+    private func calcularOperacionNumerica() {
+        guard !conjuntosNumericos.isEmpty else {
+            resultadoNumerico = []
             return
         }
         
-        let sets = conjuntos.map { limpiarConjunto($0) }
-        let universal = universo()
-        interseccionesPares = []
+        let sets = conjuntosNumericos.map { limpiarConjunto($0) }
+        let universal = limpiarConjunto(universoNumerico)
         
         switch operacion {
         case "Unión":
-            resultado = sets.reduce(Set<String>()) { $0.union($1) }
+            resultadoNumerico = sets.reduce(Set<String>()) { $0.union($1) }
         case "Intersección":
-            if sets.count == 1 {
-                resultado = sets[0]
-            } else if sets.count == 2 {
-                resultado = sets[0].intersection(sets[1])
-            } else {
-                resultado = Set<String>()
-                for i in 0..<sets.count {
-                    for j in (i+1)..<sets.count {
-                        let interseccion = sets[i].intersection(sets[j])
-                        if !interseccion.isEmpty {
-                            interseccionesPares.append("C\(i+1) ∩ C\(j+1) = \(formatearResultado(interseccion))")
-                            resultado = resultado.union(interseccion)
-                        }
-                    }
-                }
-            }
+            resultadoNumerico = sets.reduce(sets[0]) { $0.intersection($1) }
         case "Diferencia":
-            resultado = sets.count >= 2 ? sets[0].subtracting(sets[1]) : Set<String>()
+            resultadoNumerico = sets.count >= 2 ? sets[0].subtracting(sets[1]) : Set<String>()
         case "Complemento":
-            resultado = universal.subtracting(sets.first ?? Set<String>())
+            resultadoNumerico = universal.subtracting(sets.first ?? Set<String>())
         case "Ley de Morgan 1":
-            resultado = sets.count >= 2 ? universal.subtracting(sets[0].union(sets[1])) : Set<String>()
+            resultadoNumerico = sets.count >= 2 ? universal.subtracting(sets[0].union(sets[1])) : Set<String>()
         case "Ley de Morgan 2":
-            resultado = sets.count >= 2 ? universal.subtracting(sets[0].intersection(sets[1])) : Set<String>()
+            resultadoNumerico = sets.count >= 2 ? universal.subtracting(sets[0].intersection(sets[1])) : Set<String>()
         case "Doble Negación":
-            resultado = universal.subtracting(universal.subtracting(sets.first ?? Set<String>()))
+            resultadoNumerico = universal.subtracting(universal.subtracting(sets.first ?? Set<String>()))
         case "Conmutativa Unión":
-            resultado = sets.count >= 2 ? sets[1].union(sets[0]) : Set<String>()
+            resultadoNumerico = sets.count >= 2 ? sets[1].union(sets[0]) : Set<String>()
         case "Conmutativa Intersección":
-            resultado = sets.count >= 2 ? sets[1].intersection(sets[0]) : Set<String>()
+            resultadoNumerico = sets.count >= 2 ? sets[1].intersection(sets[0]) : Set<String>()
         case "Asociativa Unión":
-            resultado = sets.count >= 3 ? sets[0].union(sets[1]).union(sets[2]) :
+            resultadoNumerico = sets.count >= 3 ? sets[0].union(sets[1]).union(sets[2]) :
                          sets.count >= 2 ? sets[0].union(sets[1]) : sets.first ?? Set<String>()
         case "Asociativa Intersección":
-            resultado = sets.count >= 3 ? sets[0].intersection(sets[1]).intersection(sets[2]) :
+            resultadoNumerico = sets.count >= 3 ? sets[0].intersection(sets[1]).intersection(sets[2]) :
                          sets.count >= 2 ? sets[0].intersection(sets[1]) : sets.first ?? Set<String>()
         case "Idempotencia Unión":
-            resultado = sets.first?.union(sets.first ?? Set<String>()) ?? Set<String>()
+            resultadoNumerico = sets.first?.union(sets.first ?? Set<String>()) ?? Set<String>()
         case "Idempotencia Intersección":
-            resultado = sets.first?.intersection(sets.first ?? Set<String>()) ?? Set<String>()
+            resultadoNumerico = sets.first?.intersection(sets.first ?? Set<String>()) ?? Set<String>()
         case "Contradicción":
-            resultado = sets.first?.intersection(universal.subtracting(sets.first ?? Set<String>())) ?? Set<String>()
+            resultadoNumerico = sets.first?.intersection(universal.subtracting(sets.first ?? Set<String>())) ?? Set<String>()
         case "Distributiva Unión":
-            resultado = sets.count >= 3 ? sets[0].union(sets[1].intersection(sets[2])) : Set<String>()
+            resultadoNumerico = sets.count >= 3 ? sets[0].union(sets[1].intersection(sets[2])) : Set<String>()
         case "Distributiva Intersección":
-            resultado = sets.count >= 3 ? sets[0].intersection(sets[1].union(sets[2])) : Set<String>()
+            resultadoNumerico = sets.count >= 3 ? sets[0].intersection(sets[1].union(sets[2])) : Set<String>()
         default:
-            resultado = []
+            resultadoNumerico = []
         }
         
-        // Agregar al historial
-        let conjuntosStr = conjuntos.enumerated().map { "\($0+1)=\($1)" }.joined(separator: ", ")
-        let entrada = "\(operacion): \(conjuntosStr) → \(formatearResultado(resultado))"
+        let conjuntosStr = conjuntosNumericos.enumerated().map { "\($0+1)=\($1)" }.joined(separator: ", ")
+        let entrada = "[Num] \(operacion): \(conjuntosStr) → \(formatearResultado(resultadoNumerico))"
         if !historial.contains(entrada) {
             historial.append(entrada)
         }
     }
     
-    func limpiarConjunto(_ texto: String) -> Set<String> {
+    private func calcularOperacionAlfabetica() {
+        guard !conjuntosAlfabeticos.isEmpty else {
+            resultadoAlfabetico = []
+            return
+        }
+        
+        let sets = conjuntosAlfabeticos.map { limpiarConjunto($0) }
+        let universal = limpiarConjunto(universoAlfabetico)
+        
+        switch operacion {
+        case "Unión":
+            resultadoAlfabetico = sets.reduce(Set<String>()) { $0.union($1) }
+        case "Intersección":
+            resultadoAlfabetico = sets.reduce(sets[0]) { $0.intersection($1) }
+        case "Diferencia":
+            resultadoAlfabetico = sets.count >= 2 ? sets[0].subtracting(sets[1]) : Set<String>()
+        case "Complemento":
+            resultadoAlfabetico = universal.subtracting(sets.first ?? Set<String>())
+        case "Ley de Morgan 1":
+            resultadoAlfabetico = sets.count >= 2 ? universal.subtracting(sets[0].union(sets[1])) : Set<String>()
+        case "Ley de Morgan 2":
+            resultadoAlfabetico = sets.count >= 2 ? universal.subtracting(sets[0].intersection(sets[1])) : Set<String>()
+        case "Doble Negación":
+            resultadoAlfabetico = universal.subtracting(universal.subtracting(sets.first ?? Set<String>()))
+        case "Conmutativa Unión":
+            resultadoAlfabetico = sets.count >= 2 ? sets[1].union(sets[0]) : Set<String>()
+        case "Conmutativa Intersección":
+            resultadoAlfabetico = sets.count >= 2 ? sets[1].intersection(sets[0]) : Set<String>()
+        case "Asociativa Unión":
+            resultadoAlfabetico = sets.count >= 3 ? sets[0].union(sets[1]).union(sets[2]) :
+                         sets.count >= 2 ? sets[0].union(sets[1]) : sets.first ?? Set<String>()
+        case "Asociativa Intersección":
+            resultadoAlfabetico = sets.count >= 3 ? sets[0].intersection(sets[1]).intersection(sets[2]) :
+                         sets.count >= 2 ? sets[0].intersection(sets[1]) : sets.first ?? Set<String>()
+        case "Idempotencia Unión":
+            resultadoAlfabetico = sets.first?.union(sets.first ?? Set<String>()) ?? Set<String>()
+        case "Idempotencia Intersección":
+            resultadoAlfabetico = sets.first?.intersection(sets.first ?? Set<String>()) ?? Set<String>()
+        case "Contradicción":
+            resultadoAlfabetico = sets.first?.intersection(universal.subtracting(sets.first ?? Set<String>())) ?? Set<String>()
+        case "Distributiva Unión":
+            resultadoAlfabetico = sets.count >= 3 ? sets[0].union(sets[1].intersection(sets[2])) : Set<String>()
+        case "Distributiva Intersección":
+            resultadoAlfabetico = sets.count >= 3 ? sets[0].intersection(sets[1].union(sets[2])) : Set<String>()
+        default:
+            resultadoAlfabetico = []
+        }
+        
+        let conjuntosStr = conjuntosAlfabeticos.enumerated().map { "\($0+1)=\($1)" }.joined(separator: ", ")
+        let entrada = "[Alf] \(operacion): \(conjuntosStr) → \(formatearResultado(resultadoAlfabetico))"
+        if !historial.contains(entrada) {
+            historial.append(entrada)
+        }
+    }
+    
+    private func borrarCampos() {
+        if tipoEntrada == "Numérico" {
+            conjuntosNumericos = ["", ""]
+            resultadoNumerico = []
+        } else {
+            conjuntosAlfabeticos = ["", ""]
+            resultadoAlfabetico = []
+        }
+        operacion = "Unión"
+    }
+    
+    private func limpiarConjunto(_ texto: String) -> Set<String> {
         Set(texto.components(separatedBy: ",")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty })
     }
     
-    func formatearResultado(_ conjunto: Set<String>) -> String {
+    private func formatearResultado(_ conjunto: Set<String>) -> String {
         conjunto.isEmpty ? "∅" : "{\(conjunto.sorted().joined(separator: ", "))}"
     }
 }
 
-// Vistas auxiliares (exactamente igual que antes)
-struct TablaPertenenciaConjuntosView: View {
+// MARK: - Auxiliary Views
+
+struct TablaPertenenciaView: View {
     let conjuntos: [Set<String>]
     let resultado: Set<String>
     let operacion: String
@@ -432,7 +555,7 @@ struct TablaPertenenciaConjuntosView: View {
     }
 }
 
-struct DiagramaVennConjuntosView: View {
+struct DiagramaVennView: View {
     let conjuntos: [Set<String>]
     let resultado: Set<String>
     let operacion: String
@@ -503,7 +626,7 @@ struct DiagramaVennConjuntosView: View {
     }
 }
 
-struct CircuitoLogicoConjuntosView: View {
+struct CircuitoLogicoView: View {
     let operacion: String
     
     var body: some View {
@@ -633,7 +756,7 @@ struct CircuitoLogicoConjuntosView: View {
     }
 }
 
-struct EcuacionConjuntosView: View {
+struct EcuacionFormalView: View {
     let operacion: String
     
     var body: some View {
@@ -677,6 +800,9 @@ struct EcuacionConjuntosView: View {
     }
 }
 
-#Preview {
-    LogicaConjuntosView()
+// MARK: - Preview
+struct LogicaConjuntosView_Previews: PreviewProvider {
+    static var previews: some View {
+        LogicaConjuntosView()
+    }
 }
