@@ -7,6 +7,7 @@ struct BooleanLogicView: View {
     @State private var result: String = ""
     @State private var showVisualizations: Bool = true
     @State private var showHistory: Bool = false
+    @State private var showSymbolsKeyboard: Bool = false
     @State private var history: [String] = []
     
     let operations = [
@@ -30,7 +31,7 @@ struct BooleanLogicView: View {
         "Complement"
     ]
     
-    let symbols = ["&", "|", "^", "~", "(", ")", "0", "1"]
+    let symbols = ["&", "|", "^", "~", "(", ")", "0", "1", "A", "B", "C", "D"]
     
     var body: some View {
         NavigationView {
@@ -52,17 +53,66 @@ struct BooleanLogicView: View {
                         
                         Spacer()
                         
-                        Image(systemName: "line.3.horizontal")
-                            .font(.title2)
-                            .padding(8)
-                            .opacity(0)
+                        Button(action: { showVisualizations.toggle() }) {
+                            Image(systemName: showVisualizations ? "eye.fill" : "eye.slash.fill")
+                                .font(.title2)
+                                .padding(8)
+                        }
                     }
                     .padding(.horizontal)
                     
-                    // Input field
-                    TextField("Expression (e.g., A & B)", text: $expression)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal)
+                    // Input field with symbols button
+                    HStack {
+                        TextField("Expression (e.g., A & B)", text: $expression)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        Button(action: { showSymbolsKeyboard.toggle() }) {
+                            Image(systemName: "function")
+                                .padding(8)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Symbols keyboard
+                    if showSymbolsKeyboard {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(symbols, id: \.self) { symbol in
+                                    Button(action: {
+                                        expression += symbol
+                                    }) {
+                                        Text(symbol)
+                                            .frame(width: 40, height: 40)
+                                            .background(Color.gray.opacity(0.2))
+                                            .cornerRadius(8)
+                                    }
+                                }
+                                
+                                Button(action: {
+                                    expression = ""
+                                }) {
+                                    Image(systemName: "delete.left.fill")
+                                        .frame(width: 40, height: 40)
+                                        .background(Color.red.opacity(0.2))
+                                        .cornerRadius(8)
+                                }
+                                
+                                Button(action: {
+                                    showSymbolsKeyboard = false
+                                }) {
+                                    Image(systemName: "keyboard.chevron.compact.down")
+                                        .frame(width: 40, height: 40)
+                                        .background(Color.green.opacity(0.2))
+                                        .cornerRadius(8)
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                        .transition(.slide)
+                    }
                     
                     // Operation picker
                     Picker("Operation", selection: $operation) {
@@ -138,6 +188,7 @@ struct BooleanLogicView: View {
             }
             .navigationTitle("Boolean Logic")
             .animation(.easeInOut, value: showVisualizations)
+            .animation(.easeInOut, value: showSymbolsKeyboard)
         }
     }
     
@@ -666,3 +717,4 @@ struct BooleanLogicView_Previews: PreviewProvider {
         BooleanLogicView()
     }
 }
+
